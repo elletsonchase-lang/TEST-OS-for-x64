@@ -16,17 +16,29 @@ jobs:
 
     - name: Generate Project Infrastructure
       run: |
-        # Create necessary directories
+        # Create necessary internal directories
         mkdir -p config/package-lists
         mkdir -p config/hooks/live
 
-        # Clear any existing configuration to prevent duplicate crashes
+        # Wipe out configuration history to completely clear bad URL paths
         lb clean --all || true
 
-        # Single config line forcing the builder to pull directly from official Debian mirrors
-        lb config --architectures amd64 --distribution bookworm --archive-areas "main contrib non-free non-free-firmware" --parent-mirror-bootstrap "http://debian.org" --mirror-bootstrap "http://debian.org" --binary-images iso-hybrid --memtest none
+        # Base configuration pointing precisely to the official debian mirror network
+        lb config \
+          --architectures amd64 \
+          --distribution bookworm \
+          --archive-areas "main contrib non-free non-free-firmware" \
+          --mirror-bootstrap "http://debian.org" \
+          --mirror-chroot "http://debian.org" \
+          --mirror-binary "http://debian.org" \
+          --binary-images iso-hybrid \
+          --memtest none
 
-        # Write out your software package list
+        # Direct the tool to explicitly remember the debian mirror mapping paths
+        echo "http://debian.org" > config/mirror
+        echo "http://debian.org" > config/mirror.bootstrap
+
+        # Write out your target software package lists
         cat << 'EOF' > config/package-lists/custom.list.chroot
         linux-image-amd64
         live-boot
@@ -46,7 +58,7 @@ jobs:
         network-manager-gnome
         EOF
 
-        # Write out the system optimization script hook
+        # Write out the background configuration system script hook
         cat << 'EOF' > config/hooks/live/01-setup-system.chroot
         #!/bin/sh
         set -e
@@ -62,7 +74,9 @@ jobs:
 
     - name: Run Build Engine
       run: |
-        sudo lb build
+        # Block the host environment from overriding mirror strings
+        export LB_BOOTSTRAP_FROM_HOST="false"
+        sudo -E lb build
 
     - name: Upload Bootable Image Artifact
       uses: actions/upload-artifact@v4
