@@ -16,26 +16,34 @@ jobs:
 
     - name: Configure and Run Build Engine
       run: |
-        # Wipe out any legacy broken configuration memory
+        # Completely clear old, broken project layout states
         lb clean --all || true
         
-        # KEY FIX: Added '--mode debian' to stop the tool from automatically defaulting to Ubuntu
-        lb config \
-          --mode debian \
-          --architectures amd64 \
-          --distribution bookworm \
-          --archive-areas "main contrib non-free non-free-firmware" \
-          --mirror-bootstrap "http://debian.org" \
-          --mirror-chroot "http://debian.org" \
-          --mirror-binary "http://debian.org" \
-          --binary-images iso-hybrid \
-          --memtest none
+        # Run a blank layout initialization to create the folder structures
+        lb config --mode debian --architectures amd64 --distribution bookworm --binary-images iso-hybrid --memtest none
 
-        # Ensure hook file runtime execution bits carry over cleanly
+        # FORCE VITAL OVERRIDES: Write the exact mirror file layouts directly to skip the parsing bugs
+        mkdir -p config
+        echo "LB_PARENT_MIRROR_BOOTSTRAP=\"http://debian.org\"" >> config/bootstrap
+        echo "LB_MIRROR_BOOTSTRAP=\"http://debian.org\"" >> config/bootstrap
+        echo "LB_PARENT_MIRROR_CHROOT=\"http://debian.org\"" >> config/chroot
+        echo "LB_MIRROR_CHROOT=\"http://debian.org\"" >> config/chroot
+        echo "LB_PARENT_MIRROR_BINARY=\"http://debian.org\"" >> config/binary
+        echo "LB_MIRROR_BINARY=\"http://debian.org\"" >> config/binary
+
+        # Create explicit local layout pointer links to block truncation
+        echo "http://debian.org" > config/mirror
+        echo "http://debian.org" > config/mirror.bootstrap
+
+        # Make sure the post-installation script hook permissions carry over
         if [ -f config/hooks/live/01-setup-system.chroot ]; then chmod +x config/hooks/live/01-setup-system.chroot; fi
 
-        # Run the compiler directly using the isolated environment variables
+        # Launch compilation using raw environmental variables
         export LB_MODE="debian"
+        export LB_BOOTSTRAP_MIRROR="http://debian.org"
+        export LB_MIRROR_CHROOT="http://debian.org"
+        export LB_MIRROR_BINARY="http://debian.org"
+        
         sudo -E lb build
 
     - name: Upload Bootable Image Artifact
