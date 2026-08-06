@@ -1,0 +1,7 @@
+#!/sh
+set -e
+printf "[main]\nplugins=ifupdown,keyfile\n\n[ifupdown]\nmanaged=true\n" > /etc/NetworkManager/NetworkManager.conf
+echo "wl" >> /etc/modules
+systemctl enable bluetooth || true
+systemctl enable NetworkManager || true
+apt-get clean
