@@ -16,32 +16,26 @@ jobs:
 
     - name: Configure and Run Build Engine
       run: |
-        # Wipe any bad layout memory
+        # Wipe out any legacy broken configuration memory
         lb clean --all || true
         
-        # Base layout configuration without passing unstable mirror string structures
+        # KEY FIX: Added '--mode debian' to stop the tool from automatically defaulting to Ubuntu
         lb config \
+          --mode debian \
           --architectures amd64 \
           --distribution bookworm \
           --archive-areas "main contrib non-free non-free-firmware" \
+          --mirror-bootstrap "http://debian.org" \
+          --mirror-chroot "http://debian.org" \
+          --mirror-binary "http://debian.org" \
           --binary-images iso-hybrid \
           --memtest none
 
-        # Inject real mirror directory rules straight into the build system options
-        mkdir -p config
-        echo "http://debian.org" > config/mirror
-        echo "http://debian.org" > config/mirror.bootstrap
-        echo "http://debian.org" > config/mirror.chroot
-        echo "http://debian.org" > config/mirror.binary
-
-        # Fix hook file runtime execution bits
+        # Ensure hook file runtime execution bits carry over cleanly
         if [ -f config/hooks/live/01-setup-system.chroot ]; then chmod +x config/hooks/live/01-setup-system.chroot; fi
 
-        # Execute compilation while explicitly forcing system download environment parameters
-        export LB_BOOTSTRAP_MIRROR="http://debian.org"
-        export LB_MIRROR_CHROOT="http://debian.org"
-        export LB_MIRROR_BINARY="http://debian.org"
-        
+        # Run the compiler directly using the isolated environment variables
+        export LB_MODE="debian"
         sudo -E lb build
 
     - name: Upload Bootable Image Artifact
