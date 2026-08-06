@@ -1,22 +1,24 @@
-name: Build Phoenix OS ISO
+name: Build Phoenix OS Live USB
 
 on:
   workflow_dispatch:
+
   push:
     branches:
       - main
 
 jobs:
-  build:
+  build-live-iso:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Download repository
+      - name: Download source
         uses: actions/checkout@v4
 
-      - name: Install build programs
+      - name: Install build tools
         run: |
           sudo apt-get update
+
           sudo apt-get install -y \
             live-build \
             debootstrap \
@@ -25,16 +27,18 @@ jobs:
             grub-pc-bin \
             grub-efi-amd64-bin \
             mtools \
-            dosfstools
+            dosfstools \
+            isolinux \
+            syslinux-common
 
-      - name: Build Phoenix OS
+      - name: Build Phoenix OS Live USB
         run: |
           chmod +x scripts/build.sh
           sudo ./scripts/build.sh
 
-      - name: Upload ISO
+      - name: Upload Phoenix OS ISO
         uses: actions/upload-artifact@v4
         with:
-          name: Phoenix-OS-ISO
-          path: output/*.iso
+          name: Phoenix-OS-Live-USB
+          path: output/Phoenix-OS-Live-amd64.iso
           if-no-files-found: error
