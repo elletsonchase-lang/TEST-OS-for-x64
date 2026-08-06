@@ -16,22 +16,20 @@ jobs:
 
     - name: Configure and Run Build Engine
       run: |
-        # Wipe any bad layout memory
+        # Force wipe any previous build environments
         lb clean --all || true
         
-        # Build the configuration files explicitly setting the mirror paths
-        lb config \
-          --architectures amd64 \
-          --distribution bookworm \
-          --archive-areas "main contrib non-free non-free-firmware" \
-          --mirror-bootstrap "http://debian.org" \
-          --mirror-chroot "http://debian.org" \
-          --mirror-binary "http://debian.org" \
-          --binary-images iso-hybrid \
-          --memtest none
+        # A completely flat configuration line with zero backslashes to avoid parsing bugs
+        lb config --architectures amd64 --distribution bookworm --archive-areas "main contrib non-free non-free-firmware" --mirror-bootstrap "http://debian.org" --mirror-chroot "http://debian.org" --mirror-binary "http://debian.org" --binary-images iso-hybrid --memtest none
 
-        # Ensure hook file permissions carry over properly
-        chmod +x config/hooks/live/01-setup-system.chroot
+        # Fix hook file runtime execution bits
+        if [ -f config/hooks/live/01-setup-system.chroot ]; then chmod +x config/hooks/live/01-setup-system.chroot; fi
 
         # Trigger compilation using absolute mirrors
         sudo lb build
+
+    - name: Upload Bootable Image Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: iMac-Custom-Live-OS
+        path: "*.iso"
