@@ -32,6 +32,14 @@ jobs:
             syslinux-common \
             syslinux-utils
 
+      - name: Check isohybrid
+        run: |
+          echo "Checking for isohybrid..."
+
+          command -v isohybrid
+
+          isohybrid --version || true
+
       - name: Make build script executable
         run: |
           chmod +x scripts/build.sh
@@ -40,12 +48,20 @@ jobs:
         run: |
           sudo ./scripts/build.sh
 
-      - name: Check that the ISO exists
+      - name: Check finished ISO
         run: |
-          echo "Looking for the Phoenix OS ISO..."
+          echo "Checking the output folder..."
+
           ls -lah output/
 
-          test -f output/Phoenix-OS-Live-amd64.iso
+          if [ ! -f output/Phoenix-OS-Live-amd64.iso ]; then
+            echo "ERROR: Phoenix OS ISO was not found."
+            exit 1
+          fi
+
+          echo "Phoenix OS ISO found!"
+
+          ls -lh output/Phoenix-OS-Live-amd64.iso
 
       - name: Upload Phoenix OS Live USB
         uses: actions/upload-artifact@v4
