@@ -3,35 +3,35 @@
 set -e
 
 echo "========================================"
-echo "Building Phoenix OS Live USB ISO"
-echo "No installer will be included."
+echo "Building Phoenix OS Live USB"
+echo "This OS will run from a USB."
+echo "No installer is included."
 echo "========================================"
 
-# Start with a completely clean build.
+# Remove old build files.
 rm -rf build
 rm -rf output
 
+# Create fresh folders.
 mkdir -p build
 mkdir -p output
 
 cd build
 
-# Create a plain Debian live-build configuration.
-# Ubuntu packages will be used inside the live system.
+# Configure the Ubuntu-based live system.
 lb config \
     --mode ubuntu \
     --distribution noble \
     --architectures amd64 \
     --binary-images iso-hybrid \
     --bootloader grub-efi \
-    --debian-installer none \
     --archive-areas "main restricted universe multiverse" \
     --bootappend-live "boot=live components quiet splash" \
     --iso-application "Phoenix OS Live" \
     --iso-publisher "Phoenix OS Project" \
-    --iso-volume "PHOENIX_OS_LIVE"
+    --iso-volume "PHOENIX_OS"
 
-# Copy our package list into the generated live-build config.
+# Add the Phoenix OS package list.
 mkdir -p config/package-lists
 
 cp \
@@ -39,22 +39,24 @@ cp \
     config/package-lists/phoenix.list.chroot
 
 echo "========================================"
-echo "Starting live ISO build..."
+echo "Building the Phoenix OS ISO..."
 echo "========================================"
 
 lb build
 
+# Find the ISO created by live-build.
 ISO_FILE="$(find . -maxdepth 1 -type f -name '*.iso' | head -n 1)"
 
 if [ -z "$ISO_FILE" ]; then
-    echo "ERROR: The build finished without creating an ISO."
+    echo "ERROR: No ISO was created."
     exit 1
 fi
 
+# Copy the ISO to the GitHub Actions output folder.
 cp "$ISO_FILE" ../output/Phoenix-OS-Live-amd64.iso
 
 echo "========================================"
-echo "Phoenix OS Live build finished!"
+echo "BUILD SUCCESSFUL"
 echo "========================================"
 
 ls -lh ../output/
