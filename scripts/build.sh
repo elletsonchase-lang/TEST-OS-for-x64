@@ -12,22 +12,28 @@ echo "========================================"
 rm -rf build
 rm -rf output
 
-# Create fresh build and output folders.
+# Create fresh build folders.
 mkdir -p build
 mkdir -p output
 
 # Enter the build folder.
 cd build
 
-echo "Configuring the Ubuntu-based live system..."
+echo "Configuring Phoenix OS..."
 
-# Configure a bootable 64-bit Ubuntu live ISO.
+# Create a 64-bit Ubuntu-based live ISO.
+#
+# grub-pc avoids the old Ubuntu Syslinux theme packages:
+# - syslinux-themes-ubuntu-oneiric
+# - gfxboot-theme-ubuntu
+#
+# The ISO is still a hybrid image that can be written to a USB.
 lb config \
     --mode ubuntu \
     --distribution noble \
     --architectures amd64 \
     --binary-images iso-hybrid \
-    --bootloader syslinux \
+    --bootloader grub-pc \
     --archive-areas "main restricted universe multiverse" \
     --bootappend-live "boot=live components quiet splash" \
     --iso-application "Phoenix OS Live" \
@@ -37,7 +43,7 @@ lb config \
 # Create the package-list folder.
 mkdir -p config/package-lists
 
-# Copy the Phoenix OS package list into live-build.
+# Add Phoenix OS packages.
 cp \
     ../config/package-lists/phoenix.list.chroot \
     config/package-lists/phoenix.list.chroot
@@ -52,7 +58,7 @@ lb build
 # Find the ISO created by live-build.
 ISO_FILE="$(find . -maxdepth 1 -type f -name '*.iso' | head -n 1)"
 
-# Stop with an error if no ISO was created.
+# Stop if no ISO was created.
 if [ -z "$ISO_FILE" ]; then
     echo "========================================"
     echo "ERROR: No ISO file was created."
@@ -60,7 +66,7 @@ if [ -z "$ISO_FILE" ]; then
     exit 1
 fi
 
-# Copy the finished ISO to the output folder.
+# Put the finished ISO in the output folder.
 cp "$ISO_FILE" ../output/Phoenix-OS-Live-amd64.iso
 
 echo "========================================"
@@ -72,5 +78,5 @@ ls -lh ../output/Phoenix-OS-Live-amd64.iso
 
 echo "========================================"
 echo "Phoenix OS is a live USB operating system."
-echo "No hard-drive installer was added."
+echo "No hard-drive installer is included."
 echo "========================================"
