@@ -1,0 +1,69 @@
+# Ubuntu kernel
+linux-image-generic
+linux-firmware
+
+# Boot and system
+systemd
+systemd-sysv
+dbus
+sudo
+network-manager
+
+# XFCE desktop
+xfce4
+xfce4-goodies
+lightdm
+lightdm-gtk-greeter
+
+# Browser
+firefox
+
+# File manager
+thunar
+thunar-archive-plugin
+file-roller
+
+# Terminal
+xfce4-terminal
+
+# Package installer
+gdebi
+apt
+aptitude
+software-properties-common
+
+# Internet
+network-manager-gnome
+curl
+wget
+ca-certificates
+
+# Archive support
+zip
+unzip
+p7zip-full
+tar
+gzip
+bzip2
+
+# Hardware tools
+pciutils
+usbutils
+lshw
+
+# Useful programs
+nano
+vim
+htop
+bash-completion
+
+# Audio
+pipewire
+pipewire-audio
+wireplumber
+pavucontrol
+
+# Basic desktop tools
+mousepad
+ristretto
+xfce4-taskmanager
