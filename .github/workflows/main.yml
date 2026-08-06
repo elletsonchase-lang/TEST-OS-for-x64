@@ -16,27 +16,21 @@ jobs:
 
     - name: Generate Project Infrastructure
       run: |
-        # Create necessary internal directories
+        # Create fresh, clean internal directories
         mkdir -p config/package-lists
         mkdir -p config/hooks/live
 
-        # Wipe out configuration history to completely clear bad URL paths
+        # Force clear any hidden configuration states or caches
         lb clean --all || true
+        rm -rf .build/ config/binary config/bootstrap config/chroot config/common config/source
 
-        # Base configuration pointing precisely to the official debian mirror network
+        # Pure base configuration without passing messy mirror strings inside it
         lb config \
           --architectures amd64 \
           --distribution bookworm \
           --archive-areas "main contrib non-free non-free-firmware" \
-          --mirror-bootstrap "http://debian.org" \
-          --mirror-chroot "http://debian.org" \
-          --mirror-binary "http://debian.org" \
           --binary-images iso-hybrid \
           --memtest none
-
-        # Direct the tool to explicitly remember the debian mirror mapping paths
-        echo "http://debian.org" > config/mirror
-        echo "http://debian.org" > config/mirror.bootstrap
 
         # Write out your target software package lists
         cat << 'EOF' > config/package-lists/custom.list.chroot
@@ -74,8 +68,12 @@ jobs:
 
     - name: Run Build Engine
       run: |
-        # Block the host environment from overriding mirror strings
+        # Forcefully override the mirror paths using absolute environment variables
         export LB_BOOTSTRAP_FROM_HOST="false"
+        export LB_BOOTSTRAP_MIRROR="http://debian.org"
+        export LB_MIRROR_CHROOT="http://debian.org"
+        export LB_MIRROR_BINARY="http://debian.org"
+        
         sudo -E lb build
 
     - name: Upload Bootable Image Artifact
