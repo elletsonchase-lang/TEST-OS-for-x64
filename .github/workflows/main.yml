@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Download source
+      - name: Download Phoenix OS source
         uses: actions/checkout@v4
 
       - name: Install build tools
@@ -29,16 +29,28 @@ jobs:
             mtools \
             dosfstools \
             isolinux \
-            syslinux-common
+            syslinux-common \
+            syslinux-utils
 
-      - name: Build Phoenix OS Live USB
+      - name: Make build script executable
         run: |
           chmod +x scripts/build.sh
+
+      - name: Build Phoenix OS Live USB ISO
+        run: |
           sudo ./scripts/build.sh
 
-      - name: Upload Phoenix OS ISO
+      - name: Check that the ISO exists
+        run: |
+          echo "Looking for the Phoenix OS ISO..."
+          ls -lah output/
+
+          test -f output/Phoenix-OS-Live-amd64.iso
+
+      - name: Upload Phoenix OS Live USB
         uses: actions/upload-artifact@v4
         with:
           name: Phoenix-OS-Live-USB
           path: output/Phoenix-OS-Live-amd64.iso
           if-no-files-found: error
+          retention-days: 30
