@@ -14,70 +14,24 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y live-build squashfs-tools xorriso isolinux debootstrap debian-archive-keyring
 
-    - name: Generate Project Infrastructure
+    - name: Configure and Run Build Engine
       run: |
-        # Create fresh, clean internal directories
-        mkdir -p config/package-lists
-        mkdir -p config/hooks/live
-
-        # Force clear any hidden configuration states or caches
+        # Wipe any bad layout memory
         lb clean --all || true
-        rm -rf .build/ config/binary config/bootstrap config/chroot config/common config/source
-
-        # Pure base configuration without passing messy mirror strings inside it
+        
+        # Build the configuration files explicitly setting the mirror paths
         lb config \
           --architectures amd64 \
           --distribution bookworm \
           --archive-areas "main contrib non-free non-free-firmware" \
+          --mirror-bootstrap "http://debian.org" \
+          --mirror-chroot "http://debian.org" \
+          --mirror-binary "http://debian.org" \
           --binary-images iso-hybrid \
           --memtest none
 
-        # Write out your target software package lists
-        cat << 'EOF' > config/package-lists/custom.list.chroot
-        linux-image-amd64
-        live-boot
-        live-config
-        live-config-xfce
-        xfce4
-        xfce4-goodies
-        thunar
-        xfce4-terminal
-        gdebi
-        firefox-esr
-        broadcom-sta-dkms
-        firmware-brcm80211
-        bluez
-        bluez-tools
-        blueman
-        network-manager-gnome
-        EOF
-
-        # Write out the background configuration system script hook
-        cat << 'EOF' > config/hooks/live/01-setup-system.chroot
-        #!/bin/sh
-        set -e
-        echo "[main]\nplugins=ifupdown,keyfile\n\n[ifupdown]\nmanaged=true" > /etc/NetworkManager/NetworkManager.conf
-        echo "wl" >> /etc/modules
-        systemctl enable bluetooth || true
-        systemctl enable NetworkManager || true
-        apt-get clean
-        EOF
-
-        # Grant execution permissions
+        # Ensure hook file permissions carry over properly
         chmod +x config/hooks/live/01-setup-system.chroot
 
-    - name: Run Build Engine
-      run: |
-        # Forcefully override the mirror paths using absolute environment variables
-        export LB_BOOTSTRAP_FROM_HOST="false"
-        export LB_BOOTSTRAP_MIRROR="http://debian.org"
-        export LB_MIRROR_CHROOT="http://debian.org"
-        export LB_MIRROR_BINARY="http://debian.org"
-        
-        sudo -E lb build
-
-    - name: Upload Bootable Image Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: iMac-Custom-Live-OS
-        path: "*.iso"
+        # Trigger compilation using absolute mirrors
+        sudo lb build
