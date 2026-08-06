@@ -1,0 +1,86 @@
+name: Build Custom Live OS (Single File)
+
+on: [push]
+
+jobs:
+  build-os:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Install System Compilation Tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y live-build squashfs-tools xorriso isolinux
+
+    - name: Generate Project Infrastructure
+      run: |
+        # 1. Initialize the live build configuration engine
+        lb config \
+          --architectures amd64 \
+          --distribution bookworm \
+          --archive-areas "main contrib non-free non-free-firmware" \
+          --binary-images iso-hybrid \
+          --memtest none
+
+        # 2. Write out your software package list directly
+        mkdir -p config/package-lists
+        cat << 'EOF' > config/package-lists/custom.list.chroot
+        # Base Operating System Engine
+        linux-image-amd64
+        live-boot
+        live-config
+        live-config-xfce
+
+        # Graphical Interface & Desktop Utilities
+        xfce4
+        xfce4-goodies
+        thunar
+        xfce4-terminal
+        gdebi
+
+        # Web Browser
+        firefox-esr
+
+        # iMac 2009 Hardware Drivers & Wireless Control
+        broadcom-sta-dkms
+        firmware-brcm80211
+        bluez
+        bluez-tools
+        blueman
+        network-manager-gnome
+        EOF
+
+        # 3. Write out the system optimization and network setup hook
+        mkdir -p config/hooks/live
+        cat << 'EOF' > config/hooks/live/01-setup-system.chroot
+        #!/bin/sh
+        set -e
+
+        # Direct network manager to handle wireless interfaces
+        echo "[main]\nplugins=ifupdown,keyfile\n\n[ifupdown]\nmanaged=true" > /etc/NetworkManager/NetworkManager.conf
+
+        # Force Broadcom hardware modules to register with the kernel
+        echo "wl" >> /etc/modules
+
+        # Activate wireless and bluetooth frameworks at live bootup
+        systemctl enable bluetooth
+        systemctl enable NetworkManager
+
+        # Strip compilation cache to reduce target USB file size
+        apt-get clean
+        EOF
+
+        # 4. Grant execution clearance to the system hook script
+        chmod +x config/hooks/live/01-setup-system.chroot
+
+    - name: Run Build Engine
+      run: |
+        sudo lb build
+
+    - name: Upload Bootable Image Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: iMac-Custom-Live-OS
+        path: "*.iso"
