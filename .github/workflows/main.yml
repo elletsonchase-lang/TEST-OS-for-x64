@@ -1,0 +1,40 @@
+name: Build Phoenix OS ISO
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v4
+
+      - name: Install build programs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            live-build \
+            debootstrap \
+            squashfs-tools \
+            xorriso \
+            grub-pc-bin \
+            grub-efi-amd64-bin \
+            mtools \
+            dosfstools
+
+      - name: Build Phoenix OS
+        run: |
+          chmod +x scripts/build.sh
+          sudo ./scripts/build.sh
+
+      - name: Upload ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: Phoenix-OS-ISO
+          path: output/*.iso
+          if-no-files-found: error
