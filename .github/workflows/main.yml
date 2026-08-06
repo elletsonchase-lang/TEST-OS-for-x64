@@ -1,4 +1,4 @@
-name: Build Custom Live OS (Fixed)
+name: Build Custom Live OS
 
 on: [push]
 
@@ -12,21 +12,21 @@ jobs:
     - name: Install System Compilation Tools
       run: |
         sudo apt-get update
-        sudo apt-get install -y live-build squashfs-tools xorriso isolinux debootstrap
+        sudo apt-get install -y live-build squashfs-tools xorriso isolinux debootstrap debian-archive-keyring
 
     - name: Generate Project Infrastructure
       run: |
-        # Create necessary directories first
+        # Create necessary directories
         mkdir -p config/package-lists
         mkdir -p config/hooks/live
 
         # Clear any existing configuration to prevent duplicate crashes
         lb clean --all || true
 
-        # Clean, flat configuration line to guarantee no multi-line backslash parsing issues
-        lb config --architectures amd64 --distribution bookworm --archive-areas "main contrib non-free non-free-firmware" --binary-images iso-hybrid --memtest none
+        # Single config line forcing the builder to pull directly from official Debian mirrors
+        lb config --architectures amd64 --distribution bookworm --archive-areas "main contrib non-free non-free-firmware" --parent-mirror-bootstrap "http://debian.org" --mirror-bootstrap "http://debian.org" --binary-images iso-hybrid --memtest none
 
-        # Write out your software package list directly
+        # Write out your software package list
         cat << 'EOF' > config/package-lists/custom.list.chroot
         linux-image-amd64
         live-boot
@@ -62,7 +62,6 @@ jobs:
 
     - name: Run Build Engine
       run: |
-        # Force the builder to bypass strict host matching flags
         sudo lb build
 
     - name: Upload Bootable Image Artifact
